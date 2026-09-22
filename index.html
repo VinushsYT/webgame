@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-950 text-slate-100 dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arcade Retro - Tienda y Juegos</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts for Retro Style -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            arcade: ['"Press Start 2P"', 'monospace'],
+            sans: ['Rajdhani', 'sans-serif'],
+          },
+          colors: {
+            neon: {
+              pink: '#ff007f',
+              blue: '#00f3ff',
+              yellow: '#ffe600',
+              purple: '#b000ff',
+              green: '#00ff66'
+            }
+          },
+          animation: {
+            'bounce-short': 'bounce 0.5s ease-in-out 1',
+            'float-up': 'floatUp 0.8s ease-out forwards',
+          },
+          keyframes: {
+            floatUp: {
+              '0%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+              '100%': { opacity: '0', transform: 'translateY(-40px) scale(1.2)' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .font-arcade { font-family: 'Press Start 2P', monospace; }
+
+    /* Glow Effects */
+    .neon-text-pink { text-shadow: 0 0 8px #ff007f, 0 0 15px #ff007f; }
+    .neon-text-blue { text-shadow: 0 0 8px #00f3ff, 0 0 15px #00f3ff; }
+    .neon-text-yellow { text-shadow: 0 0 8px #ffe600, 0 0 15px #ffe600; }
+    
+    /* Theme Presets */
+    .theme-cyberpunk { --primary: #00f3ff; --accent: #ff007f; --bg: #090d16; }
+    .theme-gameboy { --primary: #8bac0f; --accent: #306230; --bg: #0f380f; }
+    .theme-synthwave { --primary: #ff71ce; --accent: #01cdfe; --bg: #1a0826; }
+    .theme-matrix { --primary: #00ff66; --accent: #008822; --bg: #020d04; }
+
+    /* Floating numbers on click */
+    .floating-num {
+      position: absolute;
+      pointer-events: none;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 1.25rem;
+      color: #ffe600;
+      text-shadow: 0 0 5px #000;
+      animation: floatUp 0.8s ease-out forwards;
+      z-index: 50;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #00f3ff; }
+  </style>
+</head>
+<body class="h-full flex flex-col bg-slate-950 text-slate-100 font-sans select-none overflow-x-hidden" id="app-body">
+
+  <!-- Top Navigation / Stats Header -->
+  <header class="border-b-2 border-cyan-500/30 bg-slate-900/90 backdrop-blur sticky top-0 z-30 px-4 py-3 shadow-lg">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- Title & Branding -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-pink-600 to-cyan-400 flex items-center justify-center text-xl shadow-lg shadow-cyan-500/20">
+          <i class="fa-solid fa-gamepad text-slate-950"></i>
+        </div>
+        <div>
+          <h1 class="font-arcade text-xs sm:text-sm text-cyan-400 neon-text-blue tracking-wider">ARCADE RETRO</h1>
+          <p class="text-xs text-slate-400 hidden sm:block">¡Juega, gana copas y personaliza tu máquina!</p>
+        </div>
+      </div>
+
+      <!-- Currency Display (COPAS) -->
+      <div class="flex items-center gap-2 bg-slate-950 border-2 border-yellow-500/60 rounded-xl px-4 py-2 shadow-[0_0_15px_rgba(255,230,0,0.2)]">
+        <span class="text-2xl animate-bounce-short">🏆</span>
+        <div class="flex flex-col">
+          <span class="text-[10px] font-arcade text-yellow-500 uppercase tracking-widest">Mis Copas</span>
+          <span id="cups-display" class="font-arcade text-lg sm:text-xl text-yellow-400 neon-text-yellow">0</span>
+        </div>
+      </div>
+
+      <!-- Main Navigation Tabs -->
+      <nav class="flex gap-2 w-full sm:w-auto justify-center">
+        <button onclick="switchTab('games')" id="tab-btn-games" class="nav-tab active-tab flex-1 sm:flex-none px-4 py-2 rounded-lg font-arcade text-xs flex items-center justify-center gap-2 border-2 border-cyan-500 bg-cyan-500/20 text-cyan-300 transition-all">
+          <i class="fa-solid fa-ghost"></i> Juegos
+        </button>
+        <button onclick="switchTab('shop')" id="tab-btn-shop" class="nav-tab flex-1 sm:flex-none px-4 py-2 rounded-lg font-arcade text-xs flex items-center justify-center gap-2 border-2 border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200 transition-all">
+          <i class="fa-solid fa-store"></i> Tienda
+        </button>
+        <button onclick="switchTab('stats')" id="tab-btn-stats" class="nav-tab flex-1 sm:flex-none px-4 py-2 rounded-lg font-arcade text-xs flex items-center justify-center gap-2 border-2 border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200 transition-all">
+          <i class="fa-solid fa-trophy"></i> Logros
+        </button>
+      </nav>
+
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-6xl w-full mx-auto p-4 flex flex-col">
+    
+    <!-- SECTION 1: GAMES TAB -->
+    <section id="view-games" class="space-y-6">
+      
+      <!-- Selector Grid for Games -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        
+        <!-- Game Card: Clicker -->
+        <button onclick="selectGame('clicker')" id="card-clicker" class="game-card relative group text-left p-4 rounded-xl border-2 border-yellow-500/80 bg-slate-900/80 hover:bg-slate-800/80 transition-all hover:scale-[1.02] shadow-lg hover:shadow-yellow-500/20">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="text-3xl text-red-500"><i class="fa-solid fa-heart"></i></div>
+            <div>
+              <span class="text-[10px] font-arcade text-yellow-500 block">NUEVO JUEGO</span>
+              <h3 class="font-arcade text-sm text-yellow-300">Retro Clicker</h3>
+            </div>
+          </div>
+          <p class="text-xs text-slate-400">Haz clic en el corazón de Minecraft y genera copas pasivamente.</p>
+        </button>
+
+        <!-- Game Card: Brick Breaker -->
+        <button onclick="selectGame('brick')" id="card-brick" class="game-card relative group text-left p-4 rounded-xl border-2 border-slate-700 bg-slate-900/80 hover:bg-slate-800/80 transition-all hover:scale-[1.02] shadow-lg hover:shadow-cyan-500/20">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="text-3xl text-cyan-400"><i class="fa-solid fa-cubes"></i></div>
+            <div>
+              <span class="text-[10px] font-arcade text-cyan-500 block">CLÁSICO</span>
+              <h3 class="font-arcade text-sm text-cyan-300">Rompe Bloques</h3>
+            </div>
+          </div>
+          <p class="text-xs text-slate-400">Destruye los bloques con tu bola. ¡Cada bloque destruido otorga copas!</p>
+        </button>
+
+        <!-- Game Card: Snake -->
+        <button onclick="selectGame('snake')" id="card-snake" class="game-card relative group text-left p-4 rounded-xl border-2 border-slate-700 bg-slate-900/80 hover:bg-slate-800/80 transition-all hover:scale-[1.02] shadow-lg hover:shadow-green-500/20">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="text-3xl text-emerald-400"><i class="fa-solid fa-staff-snake"></i></div>
+            <div>
+              <span class="text-[10px] font-arcade text-emerald-500 block">RETRO</span>
+              <h3 class="font-arcade text-sm text-emerald-300">Snake Arcade</h3>
+            </div>
+          </div>
+          <p class="text-xs text-slate-400">Come manzanas, crece y acumula copas con cada alimento devorado.</p>
+        </button>
+      </div>
+
+      <!-- Game Stage Container -->
+      <div id="game-container" class="relative w-full rounded-2xl border-2 border-cyan-500/50 bg-slate-900 p-4 min-h-[480px] flex flex-col items-center justify-center shadow-[0_0_30px_rgba(0,243,255,0.15)] overflow-hidden">
+        
+        <!-- GAME 1: CLICKER (PROGRESIVO) -->
+        <div id="game-clicker-view" class="w-full flex flex-col lg:flex-row gap-6 items-center lg:items-start justify-between">
+          
+          <!-- Click Area -->
+          <div class="flex-1 flex flex-col items-center justify-center w-full py-6 relative select-none">
+            
+            <div class="text-center mb-4">
+              <span class="text-xs font-arcade text-slate-400 uppercase tracking-widest block mb-1">Copas Por Clic: <span id="clicker-cpc-display" class="text-yellow-400">1</span></span>
+              <span class="text-xs font-arcade text-slate-400 uppercase tracking-widest block">Copas Por Segundo: <span id="clicker-cps-display" class="text-cyan-400">0</span></span>
+            </div>
+
+            <!-- Big Clickable Minecraft Heart Button -->
+            <div id="clicker-button" class="relative group cursor-pointer transition-transform active:scale-90 my-4 select-none hover:scale-105">
+              <svg width="180" height="180" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" class="drop-shadow-[0_0_25px_rgba(255,0,80,0.6)] filter" style="shape-rendering: crispEdges;">
+                <!-- Minecraft Pixel Heart SVG -->
+                <!-- Black Border -->
+                <path d="M2 2h3v1H2zM6 2h4v1H6zM11 2h3v1h-3zM1 3h1v3H1zM5 3h1v1H5zM10 3h1v1h-1zM14 3h1v3h-1zM0 6h1v4H0zM15 6h1v4h-1zM1 10h1v2H1zM14 10h1v2h-1zM2 12h1v1H2zM13 12h1v1h-1zM3 13h1v1H3zM12 13h1v1h-1zM4 14h2v1H4zM10 14h2v1h-2zM6 15h4v1H6z" fill="#000000"/>
+                <!-- Dark Red Inner Shadow -->
+                <path d="M2 3h3v1H2zM11 3h3v1h-3zM1 6h1v4H1zM14 6h1v4h-1zM2 10h1v2H2zM13 10h1v2h-1zM3 12h1v1H3zM12 12h1v1h-1zM4 13h2v1H4zM10 13h2v1h-2zM6 14h4v1H6z" fill="#990000"/>
+                <!-- Main Red Color -->
+                <path d="M2 4h3v2H2zM6 3h4v2H6zM11 4h3v2h-3zM2 6h13v4H2zM3 10h10v2H3zM4 12h8v1H4zM6 13h4v1H6z" fill="#FF2222"/>
+                <!-- Pure White Highlights -->
+                <path d="M3 4h2v1H3zM2 5h1v2H2zM4 5h1v1H4z" fill="#FFFFFF"/>
+              </svg>
+            </div>
+
+            <p class="text-xs text-slate-400 mt-2 font-mono">¡Haz clic en el corazón para minar copas!</p>
+          </div>
+
+          <!-- Clicker Upgrades Shop Panel -->
+          <div class="w-full lg:w-80 bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex flex-col gap-3 max-h-[420px] overflow-y-auto">
+            <h4 class="font-arcade text-xs text-yellow-400 border-b border-slate-800 pb-2 flex items-center gap-2">
+              <i class="fa-solid fa-bolt"></i> Mejoras del Clicker
+            </h4>
+
+            <!-- Clicker Upgrades List -->
+            <div id="clicker-upgrades-list" class="space-y-3">
+              <!-- Upgrades dynamically loaded here -->
+            </div>
+          </div>
+        </div>
+
+        <!-- GAME 2: BRICK BREAKER -->
+        <div id="game-brick-view" class="hidden w-full flex-col items-center justify-center">
+          <div class="flex justify-between items-center w-full max-w-lg mb-3 px-2">
+            <div class="font-arcade text-xs text-cyan-400">Puntos: <span id="brick-score">0</span></div>
+            <div class="font-arcade text-xs text-yellow-400">Copas Ganadas: <span id="brick-cups">0</span></div>
+            <div class="font-arcade text-xs text-pink-400">Vidas: <span id="brick-lives">3</span></div>
+          </div>
+          
+          <canvas id="brickCanvas" width="480" height="360" class="border-2 border-cyan-500/80 bg-black rounded-lg shadow-lg max-w-full"></canvas>
+
+          <div class="flex gap-4 mt-4">
+            <button id="brick-start-btn" onclick="startBrickGame()" class="px-6 py-2 rounded-lg font-arcade text-xs bg-cyan-500 text-slate-950 font-bold hover:bg-cyan-400 transition-all">
+              <i class="fa-solid fa-play"></i> Iniciar Juego
+            </button>
+          </div>
+          <p class="text-xs text-slate-400 mt-2">Controles: Flechas de Teclado (Izquierda/Derecha) o Deslizar en pantalla táctil.</p>
+        </div>
+
+        <!-- GAME 3: SNAKE -->
+        <div id="game-snake-view" class="hidden w-full flex-col items-center justify-center">
+          <div class="flex justify-between items-center w-full max-w-lg mb-3 px-2">
+            <div class="font-arcade text-xs text-emerald-400">Puntuación: <span id="snake-score">0</span></div>
+            <div class="font-arcade text-xs text-yellow-400">Copas Listas: <span id="snake-cups">0</span></div>
+          </div>
+
+          <canvas id="snakeCanvas" width="400" height="320" class="border-2 border-emerald-500/80 bg-black rounded-lg shadow-lg max-w-full"></canvas>
+
+          <div class="flex gap-4 mt-4">
+            <button id="snake-start-btn" onclick="startSnakeGame()" class="px-6 py-2 rounded-lg font-arcade text-xs bg-emerald-500 text-slate-950 font-bold hover:bg-emerald-400 transition-all">
+              <i class="fa-solid fa-play"></i> Jugar Snake
+            </button>
+          </div>
+          
+          <!-- Touch Controls for Snake -->
+          <div class="grid grid-cols-3 gap-2 mt-4 sm:hidden w-36">
+            <div></div>
+            <button onclick="handleSnakeDir('UP')" class="p-3 bg-slate-800 border border-slate-700 rounded-lg text-center text-emerald-400 active:bg-slate-700"><i class="fa-solid fa-arrow-up"></i></button>
+            <div></div>
+            <button onclick="handleSnakeDir('LEFT')" class="p-3 bg-slate-800 border border-slate-700 rounded-lg text-center text-emerald-400 active:bg-slate-700"><i class="fa-solid fa-arrow-left"></i></button>
+            <button onclick="handleSnakeDir('DOWN')" class="p-3 bg-slate-800 border border-slate-700 rounded-lg text-center text-emerald-400 active:bg-slate-700"><i class="fa-solid fa-arrow-down"></i></button>
+            <button onclick="handleSnakeDir('RIGHT')" class="p-3 bg-slate-800 border border-slate-700 rounded-lg text-center text-emerald-400 active:bg-slate-700"><i class="fa-solid fa-arrow-right"></i></button>
+          </div>
+          <p class="text-xs text-slate-400 mt-2 hidden sm:block">Usa las Teclas de Dirección (W,A,S,D o Flechas) para moverte.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 2: SHOP TAB -->
+    <section id="view-shop" class="hidden space-y-6">
+      
+      <!-- Shop Header Banner -->
+      <div class="p-6 rounded-2xl bg-gradient-to-r from-purple-900/60 via-slate-900 to-pink-900/60 border-2 border-pink-500/40 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <h2 class="font-arcade text-lg text-pink-400 neon-text-pink mb-1">TIENDA DE COPAS</h2>
+          <p class="text-slate-300 text-sm">Gasta tus copas obtenidas en los juegos para desbloquear temas neón, paletas personalizadas y ventajas exclusivas.</p>
+        </div>
+        <div class="bg-slate-950 px-4 py-2 rounded-xl border border-yellow-500/50 flex items-center gap-2">
+          <span class="text-yellow-400 text-sm font-arcade">Saldo:</span>
+          <span id="shop-cups-balance" class="font-arcade text-yellow-300 text-lg">0</span>
+          <span class="text-xl">🏆</span>
+        </div>
+      </div>
+
+      <!-- Shop Items Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="shop-items-grid">
+        <!-- Shop items generated dynamically by JS -->
+      </div>
+    </section>
+
+    <!-- SECTION 3: STATS & ACHIEVEMENTS TAB -->
+    <section id="view-stats" class="hidden space-y-6">
+      
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-slate-900/90 border border-cyan-500/30 p-4 rounded-xl text-center">
+          <i class="fa-solid fa-trophy text-3xl text-yellow-400 mb-2"></i>
+          <h4 class="font-arcade text-xs text-slate-400 uppercase">Copas Historicas</h4>
+          <span id="stat-total-cups" class="font-arcade text-xl text-yellow-300">0</span>
+        </div>
+        <div class="bg-slate-900/90 border border-cyan-500/30 p-4 rounded-xl text-center">
+          <i class="fa-solid fa-hand-pointer text-3xl text-cyan-400 mb-2"></i>
+          <h4 class="font-arcade text-xs text-slate-400 uppercase">Clics Totales</h4>
+          <span id="stat-total-clicks" class="font-arcade text-xl text-cyan-300">0</span>
+        </div>
+        <div class="bg-slate-900/90 border border-cyan-500/30 p-4 rounded-xl text-center">
+          <i class="fa-solid fa-bag-shopping text-3xl text-pink-400 mb-2"></i>
+          <h4 class="font-arcade text-xs text-slate-400 uppercase">Artículos Comprados</h4>
+          <span id="stat-bought-items" class="font-arcade text-xl text-pink-300">0</span>
+        </div>
+      </div>
+
+      <!-- Reset Game Progress Data -->
+      <div class="p-6 bg-slate-900/50 border border-slate-800 rounded-xl flex items-center justify-between">
+        <div>
+          <h4 class="font-arcade text-xs text-red-400">Reiniciar Progresión</h4>
+          <p class="text-xs text-slate-400">Borra todo tu saldo de copas, mejoras del clicker y objetos de la tienda.</p>
+        </div>
+        <button onclick="resetData()" class="px-4 py-2 bg-red-600/20 border border-red-500 text-red-400 rounded-lg text-xs font-arcade hover:bg-red-600 hover:text-white transition-all">
+          <i class="fa-solid fa-trash"></i> Resetear
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Notification Toast Container -->
+  <div id="toast" class="fixed bottom-4 right-4 bg-slate-900 border-2 border-cyan-400 text-cyan-200 px-4 py-3 rounded-xl font-arcade text-xs shadow-2xl transition-all duration-300 opacity-0 translate-y-10 pointer-events-none z-50 flex items-center gap-3">
+    <i class="fa-solid fa-circle-check text-cyan-400 text-lg"></i>
+    <span id="toast-message">Mensaje de prueba</span>
+  </div>
+
+  <script>
+    // --- APP STATE & LOCALSTORAGE ---
+    const DEFAULT_STATE = {
+      cups: 0,
+      totalCupsEarned: 0,
+      totalClicks: 0,
+      boughtItems: [],
+      activeTheme: 'cyberpunk',
+      clicker: {
+        cpc: 1,
+        cps: 0,
+        upgradesBought: {}
+      }
+    };
+
+    let state = JSON.parse(localStorage.getItem('arcade_retro_save')) || DEFAULT_STATE;
+
+    function saveState() {
+      localStorage.setItem('arcade_retro_save', JSON.stringify(state));
+      updateHeaderDisplays();
+    }
+
+    function addCups(amount) {
+      if (amount <= 0) return;
+      state.cups += amount;
+      state.totalCupsEarned += amount;
+      saveState();
+    }
+
+    function updateHeaderDisplays() {
+      document.getElementById('cups-display').innerText = Math.floor(state.cups).toLocaleString();
+      document.getElementById('shop-cups-balance').innerText = Math.floor(state.cups).toLocaleString();
+      document.getElementById('stat-total-cups').innerText = Math.floor(state.totalCupsEarned).toLocaleString();
+      document.getElementById('stat-total-clicks').innerText = state.totalClicks.toLocaleString();
+      document.getElementById('stat-bought-items').innerText = state.boughtItems.length;
+      
+      if (document.getElementById('clicker-cpc-display')) {
+        document.getElementById('clicker-cpc-display').innerText = state.clicker.cpc;
+        document.getElementById('clicker-cps-display').innerText = state.clicker.cps;
+      }
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-message').innerText = message;
+      toast.classList.remove('opacity-0', 'translate-y-10', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-10', 'pointer-events-none');
+      }, 3000);
+    }
+
+    function resetData() {
+      if (confirm('¿Seguro que quieres borrar todo tu progreso de Arcade Retro?')) {
+        localStorage.removeItem('arcade_retro_save');
+        state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+        saveState();
+        location.reload();
+      }
+    }
+
+    // --- TAB SWITCHING LOGIC ---
+    function switchTab(tabName) {
+      document.getElementById('view-games').classList.add('hidden');
+      document.getElementById('view-shop').classList.add('hidden');
+      document.getElementById('view-stats').classList.add('hidden');
+
+      document.querySelectorAll('.nav-tab').forEach(btn => {
+        btn.classList.remove('border-cyan-500', 'bg-cyan-500/20', 'text-cyan-300');
+        btn.classList.add('border-slate-700', 'bg-slate-800', 'text-slate-400');
+      });
+
+      const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+      activeBtn.classList.remove('border-slate-700', 'bg-slate-800', 'text-slate-400');
+      activeBtn.classList.add('border-cyan-500', 'bg-cyan-500/20', 'text-cyan-300');
+
+      document.getElementById(`view-${tabName}`).classList.remove('hidden');
+      if (tabName === 'shop') renderShopItems();
+    }
+
+    function selectGame(game) {
+      document.getElementById('game-clicker-view').classList.add('hidden');
+      document.getElementById('game-brick-view').classList.add('hidden');
+      document.getElementById('game-snake-view').classList.add('hidden');
+
+      document.querySelectorAll('.game-card').forEach(card => {
+        card.classList.remove('border-yellow-500/80', 'border-cyan-500/80', 'border-emerald-500/80');
+        card.classList.add('border-slate-700');
+      });
+
+      if (game === 'clicker') {
+        document.getElementById('game-clicker-view').classList.remove('hidden');
+        document.getElementById('card-clicker').classList.add('border-yellow-500/80');
+      } else if (game === 'brick') {
+        document.getElementById('game-brick-view').classList.remove('hidden');
+        document.getElementById('card-brick').classList.add('border-cyan-500/80');
+      } else if (game === 'snake') {
+        document.getElementById('game-snake-view').classList.remove('hidden');
+        document.getElementById('card-snake').classList.add('border-emerald-500/80');
+      }
+    }
+
+    // --- 1. RETRO CLICKER GAME LOGIC ---
+    const CLICKER_UPGRADES = [
+      { id: 'cpc_1', name: 'Botón Turbo', desc: '+1 Copa por Clic', cost: 15, type: 'cpc', value: 1, icon: 'fa-hand' },
+      { id: 'cpc_2', name: 'Joystick Dorado', desc: '+5 Copas por Clic', cost: 100, type: 'cpc', value: 5, icon: 'fa-gamepad' },
+      { id: 'cps_1', name: 'Recreativa Pac-Man', desc: '+1 Copa por Segundo', cost: 50, type: 'cps', value: 1, icon: 'fa-ghost' },
+      { id: 'cps_2', name: 'Bar Arcade Local', desc: '+5 Copas por Segundo', cost: 250, type: 'cps', value: 5, icon: 'fa-mug-hot' },
+      { id: 'cps_3', name: 'Servidor Retro Cloud', desc: '+20 Copas por Segundo', cost: 1000, type: 'cps', value: 20, icon: 'fa-server' }
+    ];
+
+    function initClicker() {
+      const clickBtn = document.getElementById('clicker-button');
+      clickBtn.addEventListener('click', (e) => {
+        state.totalClicks++;
+        addCups(state.clicker.cpc);
+        
+        // Visual Floating Number effect
+        createFloatingText(e.clientX, e.clientY, `+${state.clicker.cpc}`);
+      });
+
+      renderClickerUpgrades();
+
+      // Passive CPS Loop
+      setInterval(() => {
+        if (state.clicker.cps > 0) {
+          addCups(state.clicker.cps / 10);
+        }
+      }, 100);
+    }
+
+    function createFloatingText(x, y, text) {
+      const el = document.createElement('div');
+      el.className = 'floating-num';
+      el.innerText = text;
+      el.style.left = `${x - 20}px`;
+      el.style.top = `${y - 30}px`;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 800);
+    }
+
+    function renderClickerUpgrades() {
+      const container = document.getElementById('clicker-upgrades-list');
+      container.innerHTML = '';
+
+      CLICKER_UPGRADES.forEach(upg => {
+        const boughtCount = state.clicker.upgradesBought[upg.id] || 0;
+        const currentCost = Math.floor(upg.cost * Math.pow(1.25, boughtCount));
+
+        const card = document.createElement('div');
+        card.className = 'p-3 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-between gap-2';
+        card.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded bg-slate-800 text-yellow-400 flex items-center justify-center"><i class="fa-solid ${upg.icon}"></i></div>
+            <div>
+              <div class="font-arcade text-[10px] text-slate-200">${upg.name} <span class="text-xs text-yellow-500">x${boughtCount}</span></div>
+              <div class="text-[10px] text-slate-400">${upg.desc}</div>
+              <div class="font-arcade text-[10px] text-yellow-400 mt-1">${currentCost} Copas</div>
+            </div>
+          </div>
+          <button onclick="buyClickerUpgrade('${upg.id}')" class="px-3 py-1.5 rounded bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-arcade text-[10px] transition-all disabled:opacity-40 disabled:pointer-events-none" ${state.cups < currentCost ? 'disabled' : ''}>
+            Comprar
+          </button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function buyClickerUpgrade(upgId) {
+      const upg = CLICKER_UPGRADES.find(u => u.id === upgId);
+      const boughtCount = state.clicker.upgradesBought[upgId] || 0;
+      const currentCost = Math.floor(upg.cost * Math.pow(1.25, boughtCount));
+
+      if (state.cups >= currentCost) {
+        state.cups -= currentCost;
+        state.clicker.upgradesBought[upgId] = boughtCount + 1;
+        
+        if (upg.type === 'cpc') state.clicker.cpc += upg.value;
+        if (upg.type === 'cps') state.clicker.cps += upg.value;
+
+        saveState();
+        renderClickerUpgrades();
+        showToast(`¡Mejora activada: ${upg.name}!`);
+      }
+    }
+
+    // --- 2. BRICK BREAKER GAME LOGIC ---
+    let brickCanvas, brickCtx;
+    let brickBall, brickPaddle, bricks = [], brickScore = 0, brickCupsEarned = 0, brickLives = 3, brickRunning = false;
+
+    function initBrickEngine() {
+      brickCanvas = document.getElementById('brickCanvas');
+      brickCtx = brickCanvas.getContext('2d');
+    }
+
+    function startBrickGame() {
+      brickScore = 0;
+      brickCupsEarned = 0;
+      brickLives = 3;
+      brickRunning = true;
+
+      document.getElementById('brick-score').innerText = brickScore;
+      document.getElementById('brick-cups').innerText = brickCupsEarned;
+      document.getElementById('brick-lives').innerText = brickLives;
+
+      brickPaddle = { x: brickCanvas.width / 2 - 40, y: brickCanvas.height - 20, w: 80, h: 12, speed: 6 };
+      brickBall = { x: brickCanvas.width / 2, y: brickCanvas.height - 40, dx: 3, dy: -3, radius: 6 };
+
+      // Generate bricks
+      bricks = [];
+      const rows = 4, cols = 7;
+      const bw = 58, bh = 16, padding = 8, offsetTop = 30, offsetLeft = 12;
+
+      for (let r = 0; r < rows; r++) {
+        bricks[r] = [];
+        for (let c = 0; c < cols; c++) {
+          bricks[r][c] = { x: offsetLeft + c * (bw + padding), y: offsetTop + r * (bh + padding), alive: true };
+        }
+      }
+
+      requestAnimationFrame(updateBrickLoop);
+    }
+
+    function updateBrickLoop() {
+      if (!brickRunning) return;
+
+      brickCtx.clearRect(0, 0, brickCanvas.width, brickCanvas.height);
+
+      // Draw Paddle
+      brickCtx.fillStyle = '#00f3ff';
+      brickCtx.shadowBlur = 10;
+      brickCtx.shadowColor = '#00f3ff';
+      brickCtx.fillRect(brickPaddle.x, brickPaddle.y, brickPaddle.w, brickPaddle.h);
+
+      // Draw Ball
+      brickCtx.fillStyle = '#ffe600';
+      brickCtx.shadowColor = '#ffe600';
+      brickCtx.beginPath();
+      brickCtx.arc(brickBall.x, brickBall.y, brickBall.radius, 0, Math.PI * 2);
+      brickCtx.fill();
+
+      // Draw Bricks
+      for (let r = 0; r < bricks.length; r++) {
+        for (let c = 0; c < bricks[r].length; c++) {
+          let b = bricks[r][c];
+          if (b.alive) {
+            brickCtx.fillStyle = r % 2 === 0 ? '#ff007f' : '#00ff66';
+            brickCtx.shadowColor = brickCtx.fillStyle;
+            brickCtx.fillRect(b.x, b.y, 58, 16);
+
+            // Ball Collision with Brick
+            if (brickBall.x > b.x && brickBall.x < b.x + 58 && brickBall.y > b.y && brickBall.y < b.y + 16) {
+              brickBall.dy *= -1;
+              b.alive = false;
+              brickScore += 10;
+              brickCupsEarned += 2;
+              addCups(2);
+              document.getElementById('brick-score').innerText = brickScore;
+              document.getElementById('brick-cups').innerText = brickCupsEarned;
+            }
+          }
+        }
+      }
+
+      // Ball Movement
+      brickBall.x += brickBall.dx;
+      brickBall.y += brickBall.dy;
+
+      // Wall Bounce
+      if (brickBall.x + brickBall.radius > brickCanvas.width || brickBall.x - brickBall.radius < 0) brickBall.dx *= -1;
+      if (brickBall.y - brickBall.radius < 0) brickBall.dy *= -1;
+
+      // Paddle Collision
+      if (brickBall.y + brickBall.radius >= brickPaddle.y && brickBall.x >= brickPaddle.x && brickBall.x <= brickPaddle.x + brickPaddle.w) {
+        brickBall.dy = -Math.abs(brickBall.dy);
+      }
+
+      // Bottom Wall (Lose Life)
+      if (brickBall.y + brickBall.radius > brickCanvas.height) {
+        brickLives--;
+        document.getElementById('brick-lives').innerText = brickLives;
+        if (brickLives <= 0) {
+          brickRunning = false;
+          showToast(`¡Game Over! Ganaste ${brickCupsEarned} copas.`);
+          return;
+        } else {
+          brickBall.x = brickCanvas.width / 2;
+          brickBall.y = brickCanvas.height - 40;
+          brickBall.dy = -3;
+        }
+      }
+
+      requestAnimationFrame(updateBrickLoop);
+    }
+
+    // Key Listeners for Paddle
+    window.addEventListener('keydown', (e) => {
+      if (!brickPaddle) return;
+      if (e.key === 'ArrowLeft' && brickPaddle.x > 0) brickPaddle.x -= 20;
+      if (e.key === 'ArrowRight' && brickPaddle.x < brickCanvas.width - brickPaddle.w) brickPaddle.x += 20;
+    });
+
+    // --- 3. SNAKE GAME LOGIC ---
+    let snakeCanvas, snakeCtx;
+    let snake = [], snakeFood = {}, snakeDir = 'RIGHT', snakeScore = 0, snakeCups = 0, snakeInterval = null;
+    const grid = 16;
+
+    function initSnakeEngine() {
+      snakeCanvas = document.getElementById('snakeCanvas');
+      snakeCtx = snakeCanvas.getContext('2d');
+    }
+
+    function startSnakeGame() {
+      if (snakeInterval) clearInterval(snakeInterval);
+      snake = [{ x: 160, y: 160 }, { x: 144, y: 160 }, { x: 128, y: 160 }];
+      snakeDir = 'RIGHT';
+      snakeScore = 0;
+      snakeCups = 0;
+      document.getElementById('snake-score').innerText = snakeScore;
+      document.getElementById('snake-cups').innerText = snakeCups;
+
+      spawnFood();
+      snakeInterval = setInterval(updateSnakeLoop, 100);
+    }
+
+    function spawnFood() {
+      snakeFood = {
+        x: Math.floor(Math.random() * (snakeCanvas.width / grid)) * grid,
+        y: Math.floor(Math.random() * (snakeCanvas.height / grid)) * grid
+      };
+    }
+
+    function handleSnakeDir(dir) {
+      if (dir === 'UP' && snakeDir !== 'DOWN') snakeDir = 'UP';
+      if (dir === 'DOWN' && snakeDir !== 'UP') snakeDir = 'DOWN';
+      if (dir === 'LEFT' && snakeDir !== 'RIGHT') snakeDir = 'LEFT';
+      if (dir === 'RIGHT' && snakeDir !== 'LEFT') snakeDir = 'RIGHT';
+    }
+
+    function updateSnakeLoop() {
+      let head = { ...snake[0] };
+
+      if (snakeDir === 'UP') head.y -= grid;
+      if (snakeDir === 'DOWN') head.y += grid;
+      if (snakeDir === 'LEFT') head.x -= grid;
+      if (snakeDir === 'RIGHT') head.x += grid;
+
+      // Wall / Self Collision check
+      if (
+        head.x < 0 || head.x >= snakeCanvas.width ||
+        head.y < 0 || head.y >= snakeCanvas.height ||
+        snake.some(segment => segment.x === head.x && segment.y === head.y)
+      ) {
+        clearInterval(snakeInterval);
+        showToast(`Snake terminado. ¡Has conseguido ${snakeCups} copas!`);
+        return;
+      }
+
+      snake.unshift(head);
+
+      // Food Collision
+      if (head.x === snakeFood.x && head.y === snakeFood.y) {
+        snakeScore += 10;
+        snakeCups += 3;
+        addCups(3);
+        document.getElementById('snake-score').innerText = snakeScore;
+        document.getElementById('snake-cups').innerText = snakeCups;
+        spawnFood();
+      } else {
+        snake.pop();
+      }
+
+      // Render Snake Canvas
+      snakeCtx.fillStyle = '#000';
+      snakeCtx.fillRect(0, 0, snakeCanvas.width, snakeCanvas.height);
+
+      // Draw Food
+      snakeCtx.fillStyle = '#ff007f';
+      snakeCtx.fillRect(snakeFood.x, snakeFood.y, grid - 2, grid - 2);
+
+      // Draw Snake
+      snakeCtx.fillStyle = '#00ff66';
+      snake.forEach(seg => snakeCtx.fillRect(seg.x, seg.y, grid - 2, grid - 2));
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (['ArrowUp', 'w', 'W'].includes(e.key)) handleSnakeDir('UP');
+      if (['ArrowDown', 's', 'S'].includes(e.key)) handleSnakeDir('DOWN');
+      if (['ArrowLeft', 'a', 'A'].includes(e.key)) handleSnakeDir('LEFT');
+      if (['ArrowRight', 'd', 'D'].includes(e.key)) handleSnakeDir('RIGHT');
+    });
+
+    // --- 4. SHOP & THEME CATALOGUE ---
+    const SHOP_ITEMS = [
+      { id: 'theme_synthwave', name: 'Tema Synthwave 80s', price: 100, category: 'theme', icon: 'fa-palette', desc: 'Estética retro-futurista violeta y neón rosa.' },
+      { id: 'theme_gameboy', name: 'Tema GameBoy Retro', price: 200, category: 'theme', icon: 'fa-gamepad', desc: 'Sabor clásico con matriz de píxeles verde oliva.' },
+      { id: 'theme_matrix', name: 'Tema Matrix Green', price: 300, category: 'theme', icon: 'fa-terminal', desc: 'Código verde fósforo para auténticos hackers retro.' },
+      { id: 'booster_2x', name: 'Multiplicador x2 Clicker', price: 500, category: 'perk', icon: 'fa-bolt-lightning', desc: 'Duplica el efecto de todos tus clics para siempre.' }
+    ];
+
+    function renderShopItems() {
+      const grid = document.getElementById('shop-items-grid');
+      grid.innerHTML = '';
+
+      SHOP_ITEMS.forEach(item => {
+        const isBought = state.boughtItems.includes(item.id);
+
+        const card = document.createElement('div');
+        card.className = 'bg-slate-900 border-2 border-slate-800 hover:border-pink-500/50 rounded-xl p-5 flex flex-col justify-between transition-all shadow-lg';
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <div class="w-10 h-10 rounded-lg bg-pink-500/20 text-pink-400 flex items-center justify-center text-xl">
+                <i class="fa-solid ${item.icon}"></i>
+              </div>
+              <span class="font-arcade text-[10px] text-yellow-400 bg-yellow-500/10 px-2 py-1 rounded border border-yellow-500/30">
+                ${item.price} 🏆
+              </span>
+            </div>
+            <h3 class="font-arcade text-sm text-slate-100 mb-1">${item.name}</h3>
+            <p class="text-xs text-slate-400 mb-4">${item.desc}</p>
+          </div>
+          <button onclick="buyShopItem('${item.id}')" class="w-full py-2.5 rounded-lg font-arcade text-xs transition-all ${isBought ? 'bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 cursor-default' : 'bg-pink-600 hover:bg-pink-500 text-white shadow-lg shadow-pink-600/30'}" ${isBought ? 'disabled' : ''}>
+            ${isBought ? 'Adquirido ✓' : 'Comprar Item'}
+          </button>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function buyShopItem(itemId) {
+      const item = SHOP_ITEMS.find(i => i.id === itemId);
+      if (!item) return;
+
+      if (state.cups >= item.price) {
+        state.cups -= item.price;
+        state.boughtItems.push(itemId);
+
+        if (item.category === 'theme') {
+          applyTheme(itemId);
+        } else if (itemId === 'booster_2x') {
+          state.clicker.cpc *= 2;
+        }
+
+        saveState();
+        renderShopItems();
+        showToast(`¡Compraste ${item.name}!`);
+      } else {
+        showToast('¡No tienes suficientes copas!');
+      }
+    }
+
+    function applyTheme(themeId) {
+      const body = document.getElementById('app-body');
+      body.classList.remove('theme-synthwave', 'theme-gameboy', 'theme-matrix');
+
+      if (themeId === 'theme_synthwave') body.classList.add('theme-synthwave');
+      if (themeId === 'theme_gameboy') body.classList.add('theme-gameboy');
+      if (themeId === 'theme_matrix') body.classList.add('theme-matrix');
+    }
+
+    // INITIALIZATION ON LOAD
+    window.onload = function() {
+      updateHeaderDisplays();
+      initClicker();
+      initBrickEngine();
+      initSnakeEngine();
+      
+      // Re-apply bought active theme
+      const activeThemeItem = state.boughtItems.find(i => i.startsWith('theme_'));
+      if (activeThemeItem) applyTheme(activeThemeItem);
+    };
+  </script>
+</body>
+</html>
